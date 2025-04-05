@@ -1,11 +1,11 @@
 #include"utils.h"
+#include "errno.h"
 
 t_log* logger;
 
 int iniciar_servidor(void)
 {
 	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
 
 	int socket_servidor;
 
@@ -16,13 +16,28 @@ int iniciar_servidor(void)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	getaddrinfo(NULL, PUERTO, &hints, &servinfo);
-
+	int err = getaddrinfo(NULL, PUERTO, &hints, &servinfo);
+	if (err == -1)
+	{
+		printf("Error en el servidor, Getadderifno: %d", errno);
+	}
+	socket_servidor = socket(servinfo->ai_family,
+                        servinfo->ai_socktype,
+                        servinfo->ai_protocol);
 	// Creamos el socket de escucha del servidor
 
+  	err = setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEPORT, &(int){1}, sizeof(int));
+	if (err == -1)
+		printf("Error en el servidor, setsockopt: %d", errno);
+
 	// Asociamos el socket a un puerto
+	
+  	err = bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
+	if (err == -1)
+		printf("Error en el servidor, bind: %d", errno);
 
 	// Escuchamos las conexiones entrantes
+	err = listen(socket_servidor, SOMAXCONN);
 
 	freeaddrinfo(servinfo);
 	log_trace(logger, "Listo para escuchar a mi cliente");
@@ -33,10 +48,12 @@ int iniciar_servidor(void)
 int esperar_cliente(int socket_servidor)
 {
 	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
 
 	// Aceptamos un nuevo cliente
-	int socket_cliente;
+	int socket_cliente = accept(socket_servidor, NULL, NULL);
+	if (socket_cliente == -1) {
+    log_info(logger, "Error al esperar al cliente: %s", strerror(errno));
+	}
 	log_info(logger, "Se conecto un cliente!");
 
 	return socket_cliente;
